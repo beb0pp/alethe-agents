@@ -3707,12 +3707,7 @@ export const en = {
   'router9.modeLocal': 'Local 9router',
   'router9.modeRemote': 'Remote gateway',
   'router9.remoteUrl': 'Gateway URL',
-  'router9.keyFile': 'Key file (DPAPI)',
-  'router9.keyFileHint':
-    'A file written by Read-Host -AsSecureString | ConvertFrom-SecureString. It stays encrypted and only this Windows user can read it. Leave it empty to use the endpoint key instead.',
 
-  'router9.keyFileOk': 'Key read ({count} characters).',
-  'router9.keyReadFailed': 'Could not read the 9router key file: {error}',
   'router9.models': 'Gateway model ids',
   'router9.modelsHint':
     'Use the ids the gateway lists at /v1/models. An empty field keeps the agent default.',
@@ -3727,9 +3722,16 @@ export const en = {
   'router9.checkUrlOk': 'Gateway {url}',
   'router9.checkUrlMissing': 'No gateway URL',
   'router9.checkUrlInvalid': 'Gateway URL must start with https://',
-  'router9.checkKeyReading': 'Reading key file…',
-  'router9.checkKeyInline': 'Using the endpoint key',
-  'router9.checkKeyMissing': 'No key file or endpoint key',
+  'router9.checkKeyMissing': 'No gateway key saved',
+  'router9.checkKeySaved': 'Key saved in the system keychain',
+  'router9.remoteKey': 'Gateway key',
+  'router9.remoteKeyPlaceholderEmpty': 'Paste the key',
+  'router9.remoteKeyPlaceholderSaved': 'Saved. Paste a new one to replace it',
+  'router9.remoteKeySave': 'Save key',
+  'router9.remoteKeyRemove': 'Remove key',
+  'router9.remoteKeyHint':
+    'Stored in the system keychain (Windows Credential Manager, macOS Keychain or Secret Service). Alethe never shows it again; only routed terminals receive it.',
+  'router9.remoteKeySaveFailed': 'Could not save the key: {error}',
   'router9.checkModels': '{count} of 4 model ids set',
   'router9.done': 'Done',
   'router9.doneConfirmed': 'Saved. New terminals with Route through 9router go through {url}.',

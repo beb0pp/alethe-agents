@@ -634,8 +634,6 @@ export type Router9Preferences = {
   apiKey: string
   /** Remote mode: gateway base URL, without the `/v1` suffix. */
   remoteUrl: string
-  /** Remote mode: DPAPI-protected key file; when set it replaces `apiKey`. */
-  keyFile: string
   models: Router9Models
   defaultForNewAgents: boolean
 }
@@ -648,7 +646,6 @@ export const DEFAULT_ROUTER9_PREFERENCES: Router9Preferences = {
   port: ROUTER9_DEFAULT_PORT,
   apiKey: '',
   remoteUrl: '',
-  keyFile: '',
   models: { opus: '', sonnet: '', haiku: '', codex: '' },
   defaultForNewAgents: false,
 }

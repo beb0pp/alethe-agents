@@ -8,6 +8,7 @@ import {
   router9BaseUrl,
   router9EnvFor,
   router9HasInstall,
+  router9KeyEnvFor,
   router9RemoteChecks,
   router9RemoteUrlAllowed,
   router9ResolveSource,
@@ -81,10 +82,9 @@ const remote: Router9Preferences = {
 }
 
 describe('router9EnvFor in remote mode', () => {
-  it('points claude at the gateway with the key it is given and the mapped models', () => {
-    expect(router9EnvFor('claude', remote, 'or_key')).toEqual({
+  it('points claude at the gateway with the mapped models and never carries the key', () => {
+    expect(router9EnvFor('claude', remote)).toEqual({
       ANTHROPIC_BASE_URL: 'https://gw.example.com',
-      ANTHROPIC_AUTH_TOKEN: 'or_key',
       ANTHROPIC_MODEL: 'cc/claude-opus-5-5',
       ANTHROPIC_DEFAULT_OPUS_MODEL: 'cc/claude-opus-5-5',
       ANTHROPIC_DEFAULT_SONNET_MODEL: 'cc/claude-sonnet-5-5',
@@ -94,19 +94,39 @@ describe('router9EnvFor in remote mode', () => {
 
   it('leaves the agent model defaults alone when no model is mapped', () => {
     const bare = { ...remote, models: DEFAULT_ROUTER9_PREFERENCES.models }
-    expect(router9EnvFor('claude', bare, 'or_key')).toEqual({
-      ANTHROPIC_BASE_URL: 'https://gw.example.com',
-      ANTHROPIC_AUTH_TOKEN: 'or_key',
-    })
+    expect(router9EnvFor('claude', bare)).toEqual({ ANTHROPIC_BASE_URL: 'https://gw.example.com' })
   })
 
-  it('gives codex only the key, read through the provider passed as arguments', () => {
-    expect(router9EnvFor('codex', remote, 'or_key')).toEqual({ ALETHE_ROUTER9_KEY: 'or_key' })
+  it('gives codex nothing through env: its provider comes in as arguments', () => {
+    expect(router9EnvFor('codex', remote)).toEqual({})
   })
 
-  it('routes nothing without a gateway URL or a key', () => {
-    expect(router9EnvFor('claude', { ...remote, remoteUrl: '' }, 'or_key')).toEqual({})
-    expect(router9EnvFor('claude', remote, '  ')).toEqual({})
+  it('ignores a key typed for local mode', () => {
+    expect(router9EnvFor('claude', { ...remote, apiKey: '9r_local' })).not.toHaveProperty(
+      'ANTHROPIC_AUTH_TOKEN',
+    )
+  })
+
+  it('routes nothing without a gateway URL', () => {
+    expect(router9EnvFor('claude', { ...remote, remoteUrl: '' })).toEqual({})
+  })
+})
+
+describe('router9KeyEnvFor', () => {
+  it('names the env var each agent reads the gateway key from', () => {
+    expect(router9KeyEnvFor('claude', remote)).toEqual(['ANTHROPIC_AUTH_TOKEN'])
+    expect(router9KeyEnvFor('codex', remote)).toEqual(['ALETHE_ROUTER9_KEY'])
+    expect(router9KeyEnvFor('opencode', remote)).toEqual(['OPENAI_API_KEY'])
+  })
+
+  it('asks for no key in local mode, when off, without a usable URL, or for shells', () => {
+    expect(router9KeyEnvFor('claude', active)).toEqual([])
+    expect(router9KeyEnvFor('claude', { ...remote, enabled: false })).toEqual([])
+    expect(router9KeyEnvFor('claude', { ...remote, remoteUrl: 'http://gw.example.com' })).toEqual(
+      [],
+    )
+    expect(router9KeyEnvFor('shell', remote)).toEqual([])
+    expect(router9KeyEnvFor('claude', undefined)).toEqual([])
   })
 })
 
@@ -143,14 +163,14 @@ describe('router9RoutingReady', () => {
     expect(router9RoutingReady({ ...active, apiKey: '' }, 'claude', true)).toBe(false)
   })
 
-  it('needs a URL and a key or key file in remote mode, with no local install', () => {
-    expect(router9RoutingReady({ ...remote, keyFile: 'C:/k.dpapi' }, 'codex', false)).toBe(true)
-    expect(router9RoutingReady({ ...remote, apiKey: 'or_key' }, 'claude', false)).toBe(true)
-    expect(router9RoutingReady(remote, 'claude', false)).toBe(false)
-    expect(router9RoutingReady({ ...remote, keyFile: 'k', remoteUrl: '' }, 'claude', false)).toBe(
+  it('needs a URL and a saved key in remote mode, with no local install', () => {
+    expect(router9RoutingReady(remote, 'codex', false, true)).toBe(true)
+    expect(router9RoutingReady(remote, 'claude', false, false)).toBe(false)
+    expect(router9RoutingReady({ ...remote, apiKey: '9r_local' }, 'claude', false, false)).toBe(
       false,
     )
-    expect(router9RoutingReady({ ...remote, keyFile: 'k' }, 'shell', false)).toBe(false)
+    expect(router9RoutingReady({ ...remote, remoteUrl: '' }, 'claude', false, true)).toBe(false)
+    expect(router9RoutingReady(remote, 'shell', false, true)).toBe(false)
   })
 })
 
@@ -168,35 +188,28 @@ describe('router9RemoteUrlAllowed', () => {
   })
 
   it('keeps routing off for a URL it refuses', () => {
-    const cleartext = { ...remote, remoteUrl: 'http://gw.example.com', keyFile: 'k' }
-    expect(router9RoutingReady(cleartext, 'claude', false)).toBe(false)
-    expect(router9EnvFor('claude', cleartext, 'or_key')).toEqual({})
+    const cleartext = { ...remote, remoteUrl: 'http://gw.example.com' }
+    expect(router9RoutingReady(cleartext, 'claude', false, true)).toBe(false)
+    expect(router9EnvFor('claude', cleartext)).toEqual({})
     expect(router9ArgsFor('codex', cleartext)).toEqual([])
   })
 })
 
 describe('router9RemoteChecks', () => {
   it('reports each part of a complete remote setup as ready', () => {
-    expect(router9RemoteChecks({ ...remote, keyFile: 'C:/k.dpapi' })).toEqual({
-      url: 'ok',
-      key: 'file',
-      models: 4,
-    })
+    expect(router9RemoteChecks(remote, true)).toEqual({ url: 'ok', key: 'saved', models: 4 })
   })
 
   it('names what is missing or refused', () => {
     expect(
-      router9RemoteChecks({ ...remote, remoteUrl: '', models: DEFAULT_ROUTER9_PREFERENCES.models }),
-    ).toEqual({
-      url: 'missing',
-      key: 'missing',
-      models: 0,
-    })
-    expect(
-      router9RemoteChecks({ ...remote, remoteUrl: 'http://gw.example.com', apiKey: 'k' }),
-    ).toEqual({
+      router9RemoteChecks(
+        { ...remote, remoteUrl: '', models: DEFAULT_ROUTER9_PREFERENCES.models },
+        false,
+      ),
+    ).toEqual({ url: 'missing', key: 'missing', models: 0 })
+    expect(router9RemoteChecks({ ...remote, remoteUrl: 'http://gw.example.com' }, true)).toEqual({
       url: 'invalid',
-      key: 'inline',
+      key: 'saved',
       models: 4,
     })
   })

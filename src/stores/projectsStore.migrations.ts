@@ -240,7 +240,6 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
       port: normalizePort(Number(router9.port)),
       apiKey: String(router9.apiKey ?? '').trim(),
       remoteUrl: normalizeRemoteUrl(String(router9.remoteUrl ?? '')),
-      keyFile: String(router9.keyFile ?? '').trim(),
       models: normalizeRouter9Models(router9.models),
     },
     pomodoroWorkMinutes: clampPomodoroMinutes(

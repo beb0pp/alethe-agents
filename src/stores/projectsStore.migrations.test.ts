@@ -428,7 +428,6 @@ describe('router9 preference normalization', () => {
     } as never)
     expect(router9.mode).toBe('local')
     expect(router9.remoteUrl).toBe('')
-    expect(router9.keyFile).toBe('')
     expect(router9.models).toEqual({ opus: '', sonnet: '', haiku: '', codex: '' })
   })
 
@@ -437,13 +436,11 @@ describe('router9 preference normalization', () => {
       router9: {
         mode: 'remote',
         remoteUrl: 'https://gw.example.com/v1/',
-        keyFile: ' C:/k.dpapi ',
         models: { opus: 'cc/opus', codex: 'cx/sol' },
       },
     } as never)
     expect(router9.mode).toBe('remote')
     expect(router9.remoteUrl).toBe('https://gw.example.com')
-    expect(router9.keyFile).toBe('C:/k.dpapi')
     expect(router9.models).toEqual({ opus: 'cc/opus', sonnet: '', haiku: '', codex: 'cx/sol' })
   })
 })

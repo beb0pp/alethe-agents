@@ -186,7 +186,12 @@ export function NewTerminalModal() {
   }
 
   // Without a key the injected environment would be empty, so the toggle would silently do nothing.
-  const routingAvailable = router9RoutingReady(router9.config, type, router9.hasInstall)
+  const routingAvailable = router9RoutingReady(
+    router9.config,
+    type,
+    router9.hasInstall,
+    router9.remoteKeySaved,
+  )
   const routingRemote = router9.config.mode === 'remote'
 
   const submit = async () => {

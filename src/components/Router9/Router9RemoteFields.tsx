@@ -1,9 +1,9 @@
-import { Check, CircleAlert, LoaderCircle, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Check, CircleAlert, KeyRound, Trash2, X } from 'lucide-react'
+import { useId, useState } from 'react'
 
 import { type MessageKey, useT } from '../../lib/i18n'
 import { normalizeRemoteUrl, router9RemoteChecks } from '../../lib/router9'
-import { readProtectedKey } from '../../lib/tauri'
+import { router9SetRemoteKey } from '../../lib/tauri'
 import type { Router9Models, Router9Preferences } from '../../lib/types'
 import controls from '../modals/controls.module.css'
 import styles from './Router9Settings.module.css'
@@ -11,18 +11,12 @@ import styles from './Router9Settings.module.css'
 type Props = {
   config: Router9Preferences
   patch: (next: Partial<Router9Preferences>) => void
+  /** Whether the OS keychain holds a gateway key; the key itself never reaches the webview. */
+  keySaved: boolean
+  onKeyChanged: () => Promise<void>
 }
 
-type KeyState =
-  | { status: 'idle' }
-  | { status: 'reading' }
-  | { status: 'ok'; length: number }
-  | { status: 'error'; message: string }
-
-type CheckState = 'ok' | 'bad' | 'pending' | 'info'
-
-const KEY_READ_DELAY_MS = 400
-const IDLE: KeyState = { status: 'idle' }
+type CheckState = 'ok' | 'bad' | 'info'
 
 const MODEL_FIELDS: { key: keyof Router9Models; label: MessageKey; placeholder: string }[] = [
   { key: 'opus', label: 'router9.modelOpus', placeholder: 'cc/claude-opus-5-5' },
@@ -31,37 +25,8 @@ const MODEL_FIELDS: { key: keyof Router9Models; label: MessageKey; placeholder: 
   { key: 'codex', label: 'router9.modelCodex', placeholder: 'cx/gpt-6.1-sol' },
 ]
 
-/** Reads the key file shortly after its path stops changing; only the latest read reports. */
-function useKeyFileCheck(keyFile: string) {
-  const path = keyFile.trim()
-  const [state, setState] = useState<KeyState>(IDLE)
-  const latest = useRef(0)
-
-  const read = useCallback(async (target: string): Promise<boolean> => {
-    const id = ++latest.current
-    setState({ status: 'reading' })
-    try {
-      const key = await readProtectedKey(target)
-      if (id === latest.current) setState({ status: 'ok', length: key.length })
-      return true
-    } catch (error) {
-      if (id === latest.current) setState({ status: 'error', message: String(error) })
-      return false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!path) return
-    const timer = window.setTimeout(() => void read(path), KEY_READ_DELAY_MS)
-    return () => window.clearTimeout(timer)
-  }, [path, read])
-
-  return { state: path ? state : IDLE, read: () => read(path) }
-}
-
 function CheckItem({ state, text }: { state: CheckState; text: string }) {
-  const Icon =
-    state === 'ok' ? Check : state === 'bad' ? X : state === 'pending' ? LoaderCircle : CircleAlert
+  const Icon = state === 'ok' ? Check : state === 'bad' ? X : CircleAlert
   return (
     <li className={styles.checkItem} data-state={state}>
       <Icon size={13} className={styles.checkIcon} aria-hidden />
@@ -71,11 +36,14 @@ function CheckItem({ state, text }: { state: CheckState; text: string }) {
 }
 
 /** Connection fields for a hosted 9router-compatible gateway, with live readiness and a Done check. */
-export function Router9RemoteFields({ config, patch }: Props) {
+export function Router9RemoteFields({ config, patch, keySaved, onKeyChanged }: Props) {
   const t = useT()
-  const keyCheck = useKeyFileCheck(config.keyFile)
+  const keyInputId = useId()
+  const [draftKey, setDraftKey] = useState('')
+  const [keyBusy, setKeyBusy] = useState(false)
+  const [keyError, setKeyError] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<'saved' | 'blocked' | null>(null)
-  const checks = router9RemoteChecks(config)
+  const checks = router9RemoteChecks(config, keySaved)
   const url = normalizeRemoteUrl(config.remoteUrl)
 
   const update = (next: Partial<Router9Preferences>) => {
@@ -83,10 +51,24 @@ export function Router9RemoteFields({ config, patch }: Props) {
     patch(next)
   }
 
-  const handleDone = async () => {
+  const writeKey = async (value: string) => {
+    setKeyBusy(true)
+    setKeyError(null)
+    setOutcome(null)
+    try {
+      await router9SetRemoteKey(value)
+      setDraftKey('')
+      await onKeyChanged()
+    } catch (error) {
+      setKeyError(t('router9.remoteKeySaveFailed', { error: String(error) }))
+    } finally {
+      setKeyBusy(false)
+    }
+  }
+
+  const handleDone = () => {
     if (url !== config.remoteUrl) patch({ remoteUrl: url })
-    const keyReady = checks.key === 'file' ? await keyCheck.read() : checks.key === 'inline'
-    setOutcome(checks.url === 'ok' && keyReady ? 'saved' : 'blocked')
+    setOutcome(checks.url === 'ok' && checks.key === 'saved' ? 'saved' : 'blocked')
   }
 
   const urlItem: [CheckState, string] =
@@ -95,19 +77,10 @@ export function Router9RemoteFields({ config, patch }: Props) {
       : checks.url === 'invalid'
         ? ['bad', t('router9.checkUrlInvalid')]
         : ['bad', t('router9.checkUrlMissing')]
-
-  const key = keyCheck.state
   const keyItem: [CheckState, string] =
-    checks.key === 'inline'
-      ? ['ok', t('router9.checkKeyInline')]
-      : checks.key === 'missing'
-        ? ['bad', t('router9.checkKeyMissing')]
-        : key.status === 'ok'
-          ? ['ok', t('router9.keyFileOk', { count: String(key.length) })]
-          : key.status === 'error'
-            ? ['bad', t('router9.keyReadFailed', { error: key.message })]
-            : ['pending', t('router9.checkKeyReading')]
-
+    checks.key === 'saved'
+      ? ['ok', t('router9.checkKeySaved')]
+      : ['bad', t('router9.checkKeyMissing')]
   const modelsItem: [CheckState, string] = [
     checks.models === MODEL_FIELDS.length ? 'ok' : 'info',
     t('router9.checkModels', { count: String(checks.models) }),
@@ -130,30 +103,51 @@ export function Router9RemoteFields({ config, patch }: Props) {
         />
       </label>
 
-      <div className={styles.connectionGrid}>
-        <label className={styles.field}>
-          <span>{t('router9.keyFile')}</span>
+      <div className={styles.field}>
+        <label htmlFor={keyInputId}>{t('router9.remoteKey')}</label>
+        <div className={styles.keyRow}>
           <input
-            className={controls.input}
-            value={config.keyFile}
-            placeholder="C:\Users\you\.config\omniroute\key.dpapi"
-            spellCheck={false}
-            onChange={(event) => update({ keyFile: event.target.value })}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>{t('router9.apiKey')}</span>
-          <input
+            id={keyInputId}
             className={controls.input}
             type="password"
-            value={config.apiKey}
+            value={draftKey}
+            autoComplete="off"
             spellCheck={false}
-            disabled={Boolean(config.keyFile.trim())}
-            onChange={(event) => update({ apiKey: event.target.value })}
+            placeholder={
+              keySaved
+                ? t('router9.remoteKeyPlaceholderSaved')
+                : t('router9.remoteKeyPlaceholderEmpty')
+            }
+            onChange={(event) => setDraftKey(event.target.value)}
           />
-        </label>
+          <button
+            type="button"
+            className={styles.quietBtn}
+            disabled={keyBusy || !draftKey.trim()}
+            onClick={() => void writeKey(draftKey.trim())}
+          >
+            <KeyRound size={12} aria-hidden />
+            {t('router9.remoteKeySave')}
+          </button>
+          {keySaved ? (
+            <button
+              type="button"
+              className={`${styles.quietBtn} ${styles.dangerBtn}`}
+              disabled={keyBusy}
+              onClick={() => void writeKey('')}
+            >
+              <Trash2 size={12} aria-hidden />
+              {t('router9.remoteKeyRemove')}
+            </button>
+          ) : null}
+        </div>
       </div>
-      <p className={styles.hint}>{t('router9.keyFileHint')}</p>
+      {keyError ? (
+        <p className={styles.notice} data-tone="warn">
+          {keyError}
+        </p>
+      ) : null}
+      <p className={styles.hint}>{t('router9.remoteKeyHint')}</p>
 
       <div className={styles.connectionGrid}>
         {MODEL_FIELDS.map((field) => (
@@ -185,8 +179,8 @@ export function Router9RemoteFields({ config, patch }: Props) {
         <button
           type="button"
           className={`${controls.btn} ${controls.btnPrimary}`}
-          disabled={key.status === 'reading'}
-          onClick={() => void handleDone()}
+          disabled={keyBusy}
+          onClick={handleDone}
         >
           <Check size={13} aria-hidden />
           {t('router9.done')}

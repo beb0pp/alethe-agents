@@ -41,7 +41,12 @@ export async function router9Stop(): Promise<void> {
   await invoke('router9_stop')
 }
 
-/** Decrypts a DPAPI key file written by `ConvertFrom-SecureString`. Windows only. */
-export async function readProtectedKey(path: string): Promise<string> {
-  return invoke<string>('read_protected_key', { path })
+/** Whether a remote gateway key is saved in the OS keychain; the key itself never comes back. */
+export async function router9RemoteKeyStatus(): Promise<boolean> {
+  return invoke<boolean>('router9_remote_key_status')
+}
+
+/** Saves the remote gateway key in the OS keychain, or removes it when `key` is blank. */
+export async function router9SetRemoteKey(key: string): Promise<void> {
+  await invoke('router9_set_remote_key', { key })
 }

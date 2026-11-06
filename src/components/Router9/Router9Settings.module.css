@@ -139,7 +139,8 @@
   gap: 6px;
 }
 
-.field > span {
+.field > span,
+.field > label {
   color: var(--fg-muted);
   font-size: 11px;
   font-weight: 600;
@@ -256,24 +257,15 @@
   color: var(--status-waiting);
 }
 
-.checkItem[data-state='pending'] {
-  color: var(--fg-muted);
+.keyRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.checkItem[data-state='pending'] .checkIcon {
-  animation: spin 900ms linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkItem[data-state='pending'] .checkIcon {
-    animation: none;
-  }
+.keyRow input {
+  flex: 1;
+  min-width: 0;
 }
 
 .doneRow {

@@ -3749,12 +3749,7 @@ export const ptBR: Record<MessageKey, string> = {
   'router9.modeLocal': '9router local',
   'router9.modeRemote': 'Gateway remoto',
   'router9.remoteUrl': 'URL do gateway',
-  'router9.keyFile': 'Arquivo da chave (DPAPI)',
-  'router9.keyFileHint':
-    'Arquivo gravado por Read-Host -AsSecureString | ConvertFrom-SecureString. Continua criptografado e só este usuário do Windows consegue ler. Deixe vazio para usar a chave do endpoint.',
 
-  'router9.keyFileOk': 'Chave lida ({count} caracteres).',
-  'router9.keyReadFailed': 'Não foi possível ler o arquivo da chave do 9router: {error}',
   'router9.models': 'IDs de modelo do gateway',
   'router9.modelsHint':
     'Use os IDs que o gateway lista em /v1/models. Campo vazio mantém o padrão do agente.',
@@ -3769,9 +3764,16 @@ export const ptBR: Record<MessageKey, string> = {
   'router9.checkUrlOk': 'Gateway {url}',
   'router9.checkUrlMissing': 'Sem URL do gateway',
   'router9.checkUrlInvalid': 'A URL do gateway precisa começar com https://',
-  'router9.checkKeyReading': 'Lendo o arquivo da chave…',
-  'router9.checkKeyInline': 'Usando a chave do endpoint',
-  'router9.checkKeyMissing': 'Sem arquivo de chave nem chave do endpoint',
+  'router9.checkKeyMissing': 'Nenhuma chave do gateway salva',
+  'router9.checkKeySaved': 'Chave salva no cofre do sistema',
+  'router9.remoteKey': 'Chave do gateway',
+  'router9.remoteKeyPlaceholderEmpty': 'Cole a chave',
+  'router9.remoteKeyPlaceholderSaved': 'Salva. Cole uma nova para substituir',
+  'router9.remoteKeySave': 'Salvar chave',
+  'router9.remoteKeyRemove': 'Remover chave',
+  'router9.remoteKeyHint':
+    'Guardada no cofre do sistema (Gerenciador de Credenciais do Windows, Keychain do macOS ou Secret Service). O Alethe nunca mostra de novo; só os terminais roteados recebem.',
+  'router9.remoteKeySaveFailed': 'Não foi possível salvar a chave: {error}',
   'router9.checkModels': '{count} de 4 IDs de modelo definidos',
   'router9.done': 'Concluir',
   'router9.doneConfirmed': 'Salvo. Novos terminais com Rotear pelo 9router vão por {url}.',

@@ -24,8 +24,19 @@ type Notice = { key: string; text: string; tone: 'warn' | 'info' }
 export function Router9Settings() {
   const t = useT()
   const setPreferences = useProjectsStore((state) => state.setPreferences)
-  const { config, status, toolchain, resolved, hasInstall, busy, refresh, start, stop } =
-    useRouter9Runtime()
+  const {
+    config,
+    status,
+    toolchain,
+    resolved,
+    hasInstall,
+    remoteKeySaved,
+    refreshRemoteKey,
+    busy,
+    refresh,
+    start,
+    stop,
+  } = useRouter9Runtime()
   const [error, setError] = useState<string | null>(null)
   const [installAction, setInstallAction] = useState<'install' | 'uninstall' | null>(null)
   const fieldId = useId()
@@ -57,7 +68,7 @@ export function Router9Settings() {
 
   const remote = config.mode === 'remote'
   // Claude stands in for any routable agent: remote readiness does not depend on the agent.
-  const remoteReady = remote && router9RoutingReady(config, 'claude', false)
+  const remoteReady = remote && router9RoutingReady(config, 'claude', false, remoteKeySaved)
   const state = !config.enabled ? 'off' : running || remoteReady ? 'running' : 'ready'
   const stateLabel =
     state === 'off'
@@ -197,7 +208,14 @@ export function Router9Settings() {
                 </button>
               </div>
             </label>
-            {config.enabled ? <Router9RemoteFields config={config} patch={patch} /> : null}
+            {config.enabled ? (
+              <Router9RemoteFields
+                config={config}
+                patch={patch}
+                keySaved={remoteKeySaved}
+                onKeyChanged={refreshRemoteKey}
+              />
+            ) : null}
           </>
         ) : null}
 

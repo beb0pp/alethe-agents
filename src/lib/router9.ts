@@ -58,16 +58,19 @@ export function router9RemoteUrlAllowed(url: string): boolean {
 
 export type Router9RemoteChecks = {
   url: 'ok' | 'missing' | 'invalid'
-  key: 'file' | 'inline' | 'missing'
+  key: 'saved' | 'missing'
   models: number
 }
 
-/** What a remote setup still lacks; the key file itself is checked separately, over IPC. */
-export function router9RemoteChecks(config: Router9Preferences): Router9RemoteChecks {
+/** What a remote setup still lacks; whether the keychain holds a key comes from the backend. */
+export function router9RemoteChecks(
+  config: Router9Preferences,
+  keySaved: boolean,
+): Router9RemoteChecks {
   const url = normalizeRemoteUrl(config.remoteUrl)
   return {
     url: !url ? 'missing' : router9RemoteUrlAllowed(url) ? 'ok' : 'invalid',
-    key: config.keyFile.trim() ? 'file' : config.apiKey.trim() ? 'inline' : 'missing',
+    key: keySaved ? 'saved' : 'missing',
     models: Object.values(config.models).filter((id) => id.trim()).length,
   }
 }
@@ -76,10 +79,6 @@ export function router9RemoteChecks(config: Router9Preferences): Router9RemoteCh
 function remoteBase(config: Router9Preferences): string {
   const url = normalizeRemoteUrl(config.remoteUrl)
   return router9RemoteUrlAllowed(url) ? url : ''
-}
-
-function router9Endpoint(config: Router9Preferences): string {
-  return config.mode === 'remote' ? remoteBase(config) : router9BaseUrl(config.port)
 }
 
 /** Env var Codex reads the key from in remote mode, named by the provider in `router9ArgsFor`. */
@@ -91,35 +90,48 @@ export function router9RoutingReady(
   config: Router9Preferences,
   agent: AgentType,
   hasInstall: boolean,
+  remoteKeySaved = false,
 ): boolean {
   if (!config.enabled || !router9SupportsAgent(agent)) return false
-  if (config.mode === 'remote') {
-    return Boolean(remoteBase(config) && (config.keyFile.trim() || config.apiKey.trim()))
-  }
+  if (config.mode === 'remote') return Boolean(remoteBase(config) && remoteKeySaved)
   return Boolean(config.apiKey.trim() && hasInstall)
 }
 
-/** Env vars that route one agent; empty when routing must not apply. `apiKey` may come from a key file. */
+/** Env vars that route one agent; empty when routing must not apply. Remote keys are never here. */
 export function router9EnvFor(
   agent: AgentType,
   config: Router9Preferences | undefined,
-  apiKey: string = config?.apiKey ?? '',
 ): Record<string, string> {
   if (!config?.enabled) return {}
-  const key = apiKey.trim()
-  if (!key) return {}
   const dialect = AGENT_DIALECT[agent]
   if (!dialect) return {}
-  const baseUrl = router9Endpoint(config)
-  if (!baseUrl) return {}
 
-  if (dialect === 'anthropic') {
-    const env: Record<string, string> = { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: key }
-    if (config.mode === 'remote') Object.assign(env, claudeModelEnv(config.models))
-    return env
+  if (config.mode === 'remote') {
+    const baseUrl = remoteBase(config)
+    if (!baseUrl) return {}
+    if (dialect === 'anthropic') {
+      return { ANTHROPIC_BASE_URL: baseUrl, ...claudeModelEnv(config.models) }
+    }
+    return agent === 'codex' ? {} : { OPENAI_BASE_URL: `${baseUrl}/v1` }
   }
-  if (config.mode === 'remote' && agent === 'codex') return { [CODEX_KEY_ENV]: key }
+
+  const key = config.apiKey.trim()
+  if (!key) return {}
+  const baseUrl = router9BaseUrl(config.port)
+  if (dialect === 'anthropic') return { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: key }
   return { OPENAI_BASE_URL: `${baseUrl}/v1`, OPENAI_API_KEY: key }
+}
+
+/** Env var names the backend fills with the remote key from the OS keychain at spawn time. */
+export function router9KeyEnvFor(
+  agent: AgentType,
+  config: Router9Preferences | undefined,
+): string[] {
+  if (!config?.enabled || config.mode !== 'remote' || !remoteBase(config)) return []
+  const dialect = AGENT_DIALECT[agent]
+  if (!dialect) return []
+  if (dialect === 'anthropic') return ['ANTHROPIC_AUTH_TOKEN']
+  return [agent === 'codex' ? CODEX_KEY_ENV : 'OPENAI_API_KEY']
 }
 
 function claudeModelEnv(models: Router9Models): Record<string, string> {

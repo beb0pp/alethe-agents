@@ -30,7 +30,7 @@ import { isOrchestratorShellPty } from '../../lib/orchestratorShells'
 import { isWindows } from '../../lib/platform'
 import { ptyLaunchTarget } from '../../lib/ptyLaunchTarget'
 import { usePtyPanelVisible } from '../../lib/ptyVisibility'
-import { router9ArgsFor, router9EnvFor } from '../../lib/router9'
+import { router9ArgsFor, router9EnvFor, router9KeyEnvFor } from '../../lib/router9'
 import {
   claimDiscoveredSession,
   claimMostRecentSession,
@@ -69,7 +69,6 @@ import {
   ptyExists,
   readClipboardPayload,
   readGsdChildSession,
-  readProtectedKey,
   recordAppEvent,
   resizePty,
   resumePtyOutput,
@@ -85,7 +84,6 @@ import {
   type AgentRuntimeProfile,
   type AgentType,
   isShellAgentType,
-  type Router9Preferences,
   type Theme,
 } from '../../lib/types'
 import { wslTargetFor } from '../../lib/wsl'
@@ -148,12 +146,6 @@ function warnAiMemoryMissing(): void {
     title: translate(getLocale(), 'aiMemory.notInstalledTitle'),
     body: translate(getLocale(), 'aiMemory.notInstalledBody'),
   })
-}
-
-/** Remote mode may keep its key in a DPAPI file; anything else uses the stored endpoint key. */
-async function resolveRouter9Key(config: Router9Preferences): Promise<string> {
-  const keyFile = config.mode === 'remote' ? config.keyFile.trim() : ''
-  return keyFile ? readProtectedKey(keyFile) : config.apiKey
 }
 
 type BootPhase = 'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
@@ -1293,14 +1285,13 @@ export function useXtermSession(params: {
         // process starts, so turning 9router off only ever affects terminals opened afterwards.
         const router9Config = useProjectsStore.getState().preferences.router9
         const routeThroughRouter9 = Boolean(useRouter9 && command && router9Config?.enabled)
-        // A key file that cannot be read fails the launch instead of silently using the own account.
-        const router9Key =
-          routeThroughRouter9 && router9Config ? await resolveRouter9Key(router9Config) : ''
-        if (disposed) return
         const router9Env =
-          routeThroughRouter9 && command ? router9EnvFor(command, router9Config, router9Key) : {}
+          routeThroughRouter9 && command ? router9EnvFor(command, router9Config) : {}
         const router9Args =
           routeThroughRouter9 && command ? router9ArgsFor(command, router9Config) : []
+        // The backend fills these from the keychain and fails the launch when no key is saved.
+        const router9KeyEnv =
+          routeThroughRouter9 && command ? router9KeyEnvFor(command, router9Config) : []
         // The Codex hook forwarder and MCP bridge are shared per port, so they read the terminal
         // they belong to from here instead of from a path Codex would ask to trust again.
         const launchEnv = {
@@ -1459,6 +1450,7 @@ export function useXtermSession(params: {
             runAsAdmin: !command && runAsAdmin,
             launcherOverride,
             env: launchEnv,
+            router9KeyEnv: router9KeyEnv.length > 0 ? router9KeyEnv : undefined,
           })
         } finally {
           releaseSpawnSlot()
