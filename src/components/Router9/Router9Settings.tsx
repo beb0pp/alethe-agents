@@ -3,13 +3,21 @@ import { useId, useState } from 'react'
 
 import { useRouter9Runtime } from '../../hooks/useRouter9Runtime'
 import { useT } from '../../lib/i18n'
-import { normalizePort, ROUTER9_ADVISORIES_URL, router9BaseUrl } from '../../lib/router9'
+import {
+  normalizePort,
+  normalizeRemoteUrl,
+  ROUTER9_ADVISORIES_URL,
+  router9BaseUrl,
+  router9RemoteUrlAllowed,
+  router9RoutingReady,
+} from '../../lib/router9'
 import { openInBrowser } from '../../lib/tauri'
 import type { Router9Preferences } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import controls from '../modals/controls.module.css'
 import { SettingsSection } from '../modals/preferences/primitives'
 import { Router9InstallModal } from './Router9InstallModal'
+import { Router9RemoteFields } from './Router9RemoteFields'
 import styles from './Router9Settings.module.css'
 
 type Notice = { key: string; text: string; tone: 'warn' | 'info' }
@@ -46,45 +54,75 @@ export function Router9Settings() {
   )
   const probing = status === null || toolchain === null
 
-  const state = !config.enabled ? 'off' : running ? 'running' : 'ready'
+  const remote = config.mode === 'remote'
+  // Claude stands in for any routable agent: remote readiness does not depend on the agent.
+  const remoteReady = remote && router9RoutingReady(config, 'claude', false)
+  const state = !config.enabled ? 'off' : running || remoteReady ? 'running' : 'ready'
   const stateLabel =
     state === 'running'
-      ? t('router9.stateRunning', { url: router9BaseUrl(config.port) })
+      ? t('router9.stateRunning', {
+          url: remote ? config.remoteUrl : router9BaseUrl(config.port),
+        })
       : state === 'ready'
         ? t('router9.stateReady')
         : t('router9.stateOff')
 
-  const notices: Notice[] = []
-  if (toolchain !== null && !npmReady) {
-    notices.push({ key: 'node', text: t('router9.nodeMissing'), tone: 'warn' })
-  }
-  if (resolved && resolved.source !== config.source) {
-    notices.push({
-      key: 'fallback',
-      text: t(
-        resolved.source === 'external' ? 'router9.fallbackExternal' : 'router9.fallbackManaged',
-      ),
-      tone: 'warn',
-    })
-  }
-  if (config.enabled && !config.apiKey.trim()) {
-    notices.push({ key: 'key', text: t('router9.missingKey'), tone: 'warn' })
-  }
-  if (status && status.portInUse && !running) {
-    notices.push({
-      key: 'port',
-      text: t('router9.portInUse', { port: String(status.port) }),
-      tone: 'warn',
-    })
-  }
-  if (managed?.installed && managed.version && status && managed.version !== status.pinnedVersion) {
-    notices.push({ key: 'pinned', text: t('router9.pinnedMismatch'), tone: 'info' })
-  }
-  // Only worth saying once it can actually bite: routing is on and agents may already be attached.
-  if (config.enabled && running) {
-    notices.push({ key: 'restart', text: t('router9.runningTerminalsHint'), tone: 'info' })
-  }
+  const notices: Notice[] = remote ? remoteNotices() : localNotices()
   if (error) notices.push({ key: 'error', text: error, tone: 'warn' })
+
+  function remoteNotices(): Notice[] {
+    if (!config.enabled) return []
+    const list: Notice[] = []
+    if (!config.remoteUrl.trim()) {
+      list.push({ key: 'url', text: t('router9.missingRemoteUrl'), tone: 'warn' })
+    } else if (!router9RemoteUrlAllowed(normalizeRemoteUrl(config.remoteUrl))) {
+      list.push({ key: 'url', text: t('router9.invalidRemoteUrl'), tone: 'warn' })
+    }
+    if (!config.keyFile.trim() && !config.apiKey.trim()) {
+      list.push({ key: 'key', text: t('router9.missingRemoteKey'), tone: 'warn' })
+    }
+    list.push({ key: 'restart', text: t('router9.runningTerminalsHint'), tone: 'info' })
+    return list
+  }
+
+  function localNotices(): Notice[] {
+    const notices: Notice[] = []
+    if (toolchain !== null && !npmReady) {
+      notices.push({ key: 'node', text: t('router9.nodeMissing'), tone: 'warn' })
+    }
+    if (resolved && resolved.source !== config.source) {
+      notices.push({
+        key: 'fallback',
+        text: t(
+          resolved.source === 'external' ? 'router9.fallbackExternal' : 'router9.fallbackManaged',
+        ),
+        tone: 'warn',
+      })
+    }
+    if (config.enabled && !config.apiKey.trim()) {
+      notices.push({ key: 'key', text: t('router9.missingKey'), tone: 'warn' })
+    }
+    if (status && status.portInUse && !running) {
+      notices.push({
+        key: 'port',
+        text: t('router9.portInUse', { port: String(status.port) }),
+        tone: 'warn',
+      })
+    }
+    if (
+      managed?.installed &&
+      managed.version &&
+      status &&
+      managed.version !== status.pinnedVersion
+    ) {
+      notices.push({ key: 'pinned', text: t('router9.pinnedMismatch'), tone: 'info' })
+    }
+    // Only worth saying once it can actually bite: routing is on and agents may already be attached.
+    if (config.enabled && running) {
+      notices.push({ key: 'restart', text: t('router9.runningTerminalsHint'), tone: 'info' })
+    }
+    return notices
+  }
 
   return (
     <SettingsSection id="router9" title={t('router9.title')} description={t('router9.desc')}>
@@ -94,7 +132,7 @@ export function Router9Settings() {
             <span className={styles.dot} aria-hidden />
             {probing ? t('router9.probing') : stateLabel}
           </span>
-          {hasInstall && config.enabled ? (
+          {!remote && hasInstall && config.enabled ? (
             <div className={styles.statusActions}>
               <button
                 type="button"
@@ -120,7 +158,52 @@ export function Router9Settings() {
           ) : null}
         </div>
 
-        {!probing && !hasInstall ? (
+        <label className={styles.field}>
+          <span>{t('router9.modeLabel')}</span>
+          <div className={styles.segmented}>
+            <button
+              type="button"
+              className={!remote ? styles.segmentActive : undefined}
+              onClick={() => patch({ mode: 'local' })}
+            >
+              {t('router9.modeLocal')}
+            </button>
+            <button
+              type="button"
+              className={remote ? styles.segmentActive : undefined}
+              onClick={() => patch({ mode: 'remote' })}
+            >
+              {t('router9.modeRemote')}
+            </button>
+          </div>
+        </label>
+
+        {remote ? (
+          <>
+            <label className={styles.field}>
+              <span>{t('router9.enabled')}</span>
+              <div className={styles.segmented}>
+                <button
+                  type="button"
+                  className={config.enabled ? styles.segmentActive : undefined}
+                  onClick={() => patch({ enabled: true })}
+                >
+                  {t('router9.enabledOn')}
+                </button>
+                <button
+                  type="button"
+                  className={!config.enabled ? styles.segmentActive : undefined}
+                  onClick={() => patch({ enabled: false })}
+                >
+                  {t('router9.enabledOff')}
+                </button>
+              </div>
+            </label>
+            {config.enabled ? <Router9RemoteFields config={config} patch={patch} /> : null}
+          </>
+        ) : null}
+
+        {!remote && !probing && !hasInstall ? (
           <div className={styles.setup}>
             <p className={styles.setupCopy}>{t('router9.setupIntro')}</p>
             <div className={styles.row}>
@@ -136,7 +219,7 @@ export function Router9Settings() {
           </div>
         ) : null}
 
-        {hasInstall ? (
+        {!remote && hasInstall ? (
           <>
             <div className={styles.installRow}>
               <div className={styles.installCopy}>
