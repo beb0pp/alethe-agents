@@ -39,9 +39,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Rust tests for the protected key reader
+      - name: Rust tests for the remote 9router key
         working-directory: src-tauri
-        run: cargo test --lib protected_key
+        run: cargo test --lib router9_remote
 
       # Updater artifacts need the release signing key, which only the release workflow holds.
       - name: Build NSIS installer

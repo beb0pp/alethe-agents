@@ -36,6 +36,9 @@ Mac synced through: `v1.7.0` (`80e44a3`)
 
 ## Unreleased
 
+- `pending` · `contract` · `185d92d0` feat: keep the remote 9router key in the system keychain
+  - Files: `src-tauri/src/router9_remote.rs`, `src-tauri/src/secure_store.rs`, `src-tauri/src/pty.rs`
+  - Contract: keychain secret `router9-remote-key` and the `router9_key_env` spawn parameter, as described in the entry below; the Mac app reads the key from its own Keychain entry
 - `pending` · `contract` · feat: route agents through a remote 9router gateway
   - Files: `src/lib/router9.ts`, `src/components/Router9/Router9RemoteFields.tsx`, `src/components/XTermView/useXtermSession.ts`
   - Contract: `preferences.router9` in `projects.json` gains `mode` (`local` | `remote`, default `local`), `remoteUrl` (base without `/v1`, `https://` only, `http://` on loopback), and `models` (`opus`, `sonnet`, `haiku`, `codex` gateway ids, empty keeps the agent default). New keychain secret `router9-remote-key` (commands `router9_remote_key_status`, `router9_set_remote_key`; the key is never returned to the UI). `spawn_pty` gains `router9_key_env`: the env var names the backend fills with that key, limited to `ANTHROPIC_AUTH_TOKEN`, `ALETHE_ROUTER9_KEY` and `OPENAI_API_KEY`; a missing key fails the launch. Remote Claude gets `ANTHROPIC_BASE_URL` and the `ANTHROPIC_*MODEL` vars; remote Codex gets `-c model_provider="alethe_router9"` overrides reading `ALETHE_ROUTER9_KEY`
