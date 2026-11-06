@@ -56,6 +56,22 @@ export function router9RemoteUrlAllowed(url: string): boolean {
   return parsed.protocol === 'http:' && LOOPBACK_HOSTS.has(parsed.hostname)
 }
 
+export type Router9RemoteChecks = {
+  url: 'ok' | 'missing' | 'invalid'
+  key: 'file' | 'inline' | 'missing'
+  models: number
+}
+
+/** What a remote setup still lacks; the key file itself is checked separately, over IPC. */
+export function router9RemoteChecks(config: Router9Preferences): Router9RemoteChecks {
+  const url = normalizeRemoteUrl(config.remoteUrl)
+  return {
+    url: !url ? 'missing' : router9RemoteUrlAllowed(url) ? 'ok' : 'invalid',
+    key: config.keyFile.trim() ? 'file' : config.apiKey.trim() ? 'inline' : 'missing',
+    models: Object.values(config.models).filter((id) => id.trim()).length,
+  }
+}
+
 /** Normalized gateway base, or empty when the URL is refused. */
 function remoteBase(config: Router9Preferences): string {
   const url = normalizeRemoteUrl(config.remoteUrl)

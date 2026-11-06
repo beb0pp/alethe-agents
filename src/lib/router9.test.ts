@@ -8,6 +8,7 @@ import {
   router9BaseUrl,
   router9EnvFor,
   router9HasInstall,
+  router9RemoteChecks,
   router9RemoteUrlAllowed,
   router9ResolveSource,
   router9RoutingReady,
@@ -171,6 +172,33 @@ describe('router9RemoteUrlAllowed', () => {
     expect(router9RoutingReady(cleartext, 'claude', false)).toBe(false)
     expect(router9EnvFor('claude', cleartext, 'or_key')).toEqual({})
     expect(router9ArgsFor('codex', cleartext)).toEqual([])
+  })
+})
+
+describe('router9RemoteChecks', () => {
+  it('reports each part of a complete remote setup as ready', () => {
+    expect(router9RemoteChecks({ ...remote, keyFile: 'C:/k.dpapi' })).toEqual({
+      url: 'ok',
+      key: 'file',
+      models: 4,
+    })
+  })
+
+  it('names what is missing or refused', () => {
+    expect(
+      router9RemoteChecks({ ...remote, remoteUrl: '', models: DEFAULT_ROUTER9_PREFERENCES.models }),
+    ).toEqual({
+      url: 'missing',
+      key: 'missing',
+      models: 0,
+    })
+    expect(
+      router9RemoteChecks({ ...remote, remoteUrl: 'http://gw.example.com', apiKey: 'k' }),
+    ).toEqual({
+      url: 'invalid',
+      key: 'inline',
+      models: 4,
+    })
   })
 })
 

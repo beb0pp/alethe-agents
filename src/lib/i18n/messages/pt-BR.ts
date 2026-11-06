@@ -3752,7 +3752,7 @@ export const ptBR: Record<MessageKey, string> = {
   'router9.keyFile': 'Arquivo da chave (DPAPI)',
   'router9.keyFileHint':
     'Arquivo gravado por Read-Host -AsSecureString | ConvertFrom-SecureString. Continua criptografado e só este usuário do Windows consegue ler. Deixe vazio para usar a chave do endpoint.',
-  'router9.keyFileCheck': 'Testar chave',
+
   'router9.keyFileOk': 'Chave lida ({count} caracteres).',
   'router9.keyReadFailed': 'Não foi possível ler o arquivo da chave do 9router: {error}',
   'router9.models': 'IDs de modelo do gateway',
@@ -3762,11 +3762,20 @@ export const ptBR: Record<MessageKey, string> = {
   'router9.modelSonnet': 'Claude Sonnet',
   'router9.modelHaiku': 'Claude Haiku',
   'router9.modelCodex': 'Codex',
-  'router9.missingRemoteUrl': 'O roteamento remoto está ligado mas não há URL do gateway.',
-  'router9.invalidRemoteUrl':
-    'A URL do gateway precisa começar com https:// (http:// só para localhost), então nada é roteado.',
-  'router9.missingRemoteKey':
-    'O roteamento remoto está ligado mas não há arquivo de chave nem chave do endpoint.',
+
+  'router9.stateRemoteActive': 'Novos terminais roteados vão por {url}',
+  'router9.stateRemoteIncomplete':
+    'Gateway remoto incompleto: terminais roteados ainda não estão disponíveis',
+  'router9.checkUrlOk': 'Gateway {url}',
+  'router9.checkUrlMissing': 'Sem URL do gateway',
+  'router9.checkUrlInvalid': 'A URL do gateway precisa começar com https://',
+  'router9.checkKeyReading': 'Lendo o arquivo da chave…',
+  'router9.checkKeyInline': 'Usando a chave do endpoint',
+  'router9.checkKeyMissing': 'Sem arquivo de chave nem chave do endpoint',
+  'router9.checkModels': '{count} de 4 IDs de modelo definidos',
+  'router9.done': 'Concluir',
+  'router9.doneConfirmed': 'Salvo. Novos terminais com Rotear pelo 9router vão por {url}.',
+  'router9.doneBlocked': 'Ainda não está pronto: corrija os itens marcados acima.',
   'router9.alwaysRoute': 'Sempre rotear agentes novos',
   'router9.stoppedStart': 'O 9router está parado — iniciar',
   'router9.pillOn': 'on',

@@ -8,11 +8,10 @@ import {
   normalizeRemoteUrl,
   ROUTER9_ADVISORIES_URL,
   router9BaseUrl,
-  router9RemoteUrlAllowed,
   router9RoutingReady,
 } from '../../lib/router9'
 import { openInBrowser } from '../../lib/tauri'
-import type { Router9Preferences } from '../../lib/types'
+import { DEFAULT_ROUTER9_PREFERENCES, type Router9Preferences } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import controls from '../modals/controls.module.css'
 import { SettingsSection } from '../modals/preferences/primitives'
@@ -31,8 +30,10 @@ export function Router9Settings() {
   const [installAction, setInstallAction] = useState<'install' | 'uninstall' | null>(null)
   const fieldId = useId()
 
+  // Merge into the stored value, not this render's copy: a blur and a click in one tick both land.
   const patch = (next: Partial<Router9Preferences>) => {
-    setPreferences({ router9: { ...config, ...next } })
+    const current = useProjectsStore.getState().preferences.router9 ?? DEFAULT_ROUTER9_PREFERENCES
+    setPreferences({ router9: { ...current, ...next } })
   }
 
   const act = async (action: () => Promise<void>) => {
@@ -59,30 +60,23 @@ export function Router9Settings() {
   const remoteReady = remote && router9RoutingReady(config, 'claude', false)
   const state = !config.enabled ? 'off' : running || remoteReady ? 'running' : 'ready'
   const stateLabel =
-    state === 'running'
-      ? t('router9.stateRunning', {
-          url: remote ? config.remoteUrl : router9BaseUrl(config.port),
-        })
-      : state === 'ready'
-        ? t('router9.stateReady')
-        : t('router9.stateOff')
+    state === 'off'
+      ? t('router9.stateOff')
+      : remote
+        ? remoteReady
+          ? t('router9.stateRemoteActive', { url: normalizeRemoteUrl(config.remoteUrl) })
+          : t('router9.stateRemoteIncomplete')
+        : state === 'running'
+          ? t('router9.stateRunning', { url: router9BaseUrl(config.port) })
+          : t('router9.stateReady')
 
   const notices: Notice[] = remote ? remoteNotices() : localNotices()
   if (error) notices.push({ key: 'error', text: error, tone: 'warn' })
 
+  // What is missing shows in the remote checklist; only the restart rule needs saying here.
   function remoteNotices(): Notice[] {
     if (!config.enabled) return []
-    const list: Notice[] = []
-    if (!config.remoteUrl.trim()) {
-      list.push({ key: 'url', text: t('router9.missingRemoteUrl'), tone: 'warn' })
-    } else if (!router9RemoteUrlAllowed(normalizeRemoteUrl(config.remoteUrl))) {
-      list.push({ key: 'url', text: t('router9.invalidRemoteUrl'), tone: 'warn' })
-    }
-    if (!config.keyFile.trim() && !config.apiKey.trim()) {
-      list.push({ key: 'key', text: t('router9.missingRemoteKey'), tone: 'warn' })
-    }
-    list.push({ key: 'restart', text: t('router9.runningTerminalsHint'), tone: 'info' })
-    return list
+    return [{ key: 'restart', text: t('router9.runningTerminalsHint'), tone: 'info' }]
   }
 
   function localNotices(): Notice[] {
@@ -164,6 +158,7 @@ export function Router9Settings() {
             <button
               type="button"
               className={!remote ? styles.segmentActive : undefined}
+              aria-pressed={!remote}
               onClick={() => patch({ mode: 'local' })}
             >
               {t('router9.modeLocal')}
@@ -171,6 +166,7 @@ export function Router9Settings() {
             <button
               type="button"
               className={remote ? styles.segmentActive : undefined}
+              aria-pressed={remote}
               onClick={() => patch({ mode: 'remote' })}
             >
               {t('router9.modeRemote')}
@@ -186,6 +182,7 @@ export function Router9Settings() {
                 <button
                   type="button"
                   className={config.enabled ? styles.segmentActive : undefined}
+                  aria-pressed={config.enabled}
                   onClick={() => patch({ enabled: true })}
                 >
                   {t('router9.enabledOn')}
@@ -193,6 +190,7 @@ export function Router9Settings() {
                 <button
                   type="button"
                   className={!config.enabled ? styles.segmentActive : undefined}
+                  aria-pressed={!config.enabled}
                   onClick={() => patch({ enabled: false })}
                 >
                   {t('router9.enabledOff')}
@@ -272,6 +270,7 @@ export function Router9Settings() {
                   <button
                     type="button"
                     className={config.source === 'managed' ? styles.segmentActive : undefined}
+                    aria-pressed={config.source === 'managed'}
                     onClick={() => patch({ source: 'managed' })}
                   >
                     {t('router9.sourceManaged')}
@@ -279,6 +278,7 @@ export function Router9Settings() {
                   <button
                     type="button"
                     className={config.source === 'external' ? styles.segmentActive : undefined}
+                    aria-pressed={config.source === 'external'}
                     onClick={() => patch({ source: 'external' })}
                   >
                     {t('router9.sourceExternal')}
@@ -293,6 +293,7 @@ export function Router9Settings() {
                 <button
                   type="button"
                   className={config.enabled ? styles.segmentActive : undefined}
+                  aria-pressed={config.enabled}
                   onClick={() => patch({ enabled: true })}
                 >
                   {t('router9.enabledOn')}
@@ -300,6 +301,7 @@ export function Router9Settings() {
                 <button
                   type="button"
                   className={!config.enabled ? styles.segmentActive : undefined}
+                  aria-pressed={!config.enabled}
                   onClick={() =>
                     void act(async () => {
                       patch({ enabled: false })
@@ -346,6 +348,7 @@ export function Router9Settings() {
                     <button
                       type="button"
                       className={config.autoStart ? styles.segmentActive : undefined}
+                      aria-pressed={config.autoStart}
                       onClick={() => patch({ autoStart: true })}
                     >
                       {t('router9.autoStartOn')}
@@ -353,6 +356,7 @@ export function Router9Settings() {
                     <button
                       type="button"
                       className={!config.autoStart ? styles.segmentActive : undefined}
+                      aria-pressed={!config.autoStart}
                       onClick={() => patch({ autoStart: false })}
                     >
                       {t('router9.autoStartOff')}

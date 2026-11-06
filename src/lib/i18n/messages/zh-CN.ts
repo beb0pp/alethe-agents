@@ -3313,7 +3313,7 @@ export const zhCN: Record<MessageKey, string> = {
   'router9.keyFile': '密钥文件（DPAPI）',
   'router9.keyFileHint':
     '由 Read-Host -AsSecureString | ConvertFrom-SecureString 写入的文件。它保持加密，只有当前 Windows 用户可以读取。留空则改用端点密钥。',
-  'router9.keyFileCheck': '检查密钥',
+
   'router9.keyFileOk': '已读取密钥（{count} 个字符）。',
   'router9.keyReadFailed': '无法读取 9router 密钥文件：{error}',
   'router9.models': '网关模型 ID',
@@ -3322,10 +3322,19 @@ export const zhCN: Record<MessageKey, string> = {
   'router9.modelSonnet': 'Claude Sonnet',
   'router9.modelHaiku': 'Claude Haiku',
   'router9.modelCodex': 'Codex',
-  'router9.missingRemoteUrl': '远程路由已开启，但未设置网关 URL。',
-  'router9.invalidRemoteUrl':
-    '网关 URL 必须以 https:// 开头（仅 localhost 可用 http://），因此不会进行任何路由。',
-  'router9.missingRemoteKey': '远程路由已开启，但未设置密钥文件或端点密钥。',
+
+  'router9.stateRemoteActive': '新的路由终端经由 {url}',
+  'router9.stateRemoteIncomplete': '远程网关未配置完整：暂时无法使用路由终端',
+  'router9.checkUrlOk': '网关 {url}',
+  'router9.checkUrlMissing': '未设置网关 URL',
+  'router9.checkUrlInvalid': '网关 URL 必须以 https:// 开头',
+  'router9.checkKeyReading': '正在读取密钥文件…',
+  'router9.checkKeyInline': '使用端点密钥',
+  'router9.checkKeyMissing': '没有密钥文件或端点密钥',
+  'router9.checkModels': '已设置 {count}/4 个模型 ID',
+  'router9.done': '完成',
+  'router9.doneConfirmed': '已保存。开启"通过 9router 路由"的新终端将经由 {url}。',
+  'router9.doneBlocked': '尚未就绪：请修正上方标记的项目。',
   'router9.alwaysRoute': '始终为新代理分配路由',
   'router9.stoppedStart': '9路由器已停止——启动它',
   'router9.pillOn': '开',

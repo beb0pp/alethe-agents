@@ -3710,7 +3710,7 @@ export const en = {
   'router9.keyFile': 'Key file (DPAPI)',
   'router9.keyFileHint':
     'A file written by Read-Host -AsSecureString | ConvertFrom-SecureString. It stays encrypted and only this Windows user can read it. Leave it empty to use the endpoint key instead.',
-  'router9.keyFileCheck': 'Check key',
+
   'router9.keyFileOk': 'Key read ({count} characters).',
   'router9.keyReadFailed': 'Could not read the 9router key file: {error}',
   'router9.models': 'Gateway model ids',
@@ -3720,10 +3720,20 @@ export const en = {
   'router9.modelSonnet': 'Claude Sonnet',
   'router9.modelHaiku': 'Claude Haiku',
   'router9.modelCodex': 'Codex',
-  'router9.missingRemoteUrl': 'Remote routing is on but no gateway URL is set.',
-  'router9.invalidRemoteUrl':
-    'The gateway URL must start with https:// (plain http:// only for localhost), so nothing is routed.',
-  'router9.missingRemoteKey': 'Remote routing is on but no key file or endpoint key is set.',
+
+  'router9.stateRemoteActive': 'New routed terminals go through {url}',
+  'router9.stateRemoteIncomplete':
+    'Remote gateway incomplete: routed terminals are not available yet',
+  'router9.checkUrlOk': 'Gateway {url}',
+  'router9.checkUrlMissing': 'No gateway URL',
+  'router9.checkUrlInvalid': 'Gateway URL must start with https://',
+  'router9.checkKeyReading': 'Reading key file…',
+  'router9.checkKeyInline': 'Using the endpoint key',
+  'router9.checkKeyMissing': 'No key file or endpoint key',
+  'router9.checkModels': '{count} of 4 model ids set',
+  'router9.done': 'Done',
+  'router9.doneConfirmed': 'Saved. New terminals with Route through 9router go through {url}.',
+  'router9.doneBlocked': 'Not ready yet: fix the items marked above.',
   'router9.alwaysRoute': 'Always route new agents',
   'router9.stoppedStart': '9router is stopped — start it',
   'router9.pillOn': 'on',

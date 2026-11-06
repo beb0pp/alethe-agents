@@ -16,7 +16,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   Claude Code and Codex through a hosted 9router-compatible gateway (URL, key, model ids) instead
   of a local install. The key can stay in a DPAPI-protected file that only the current Windows user
   can read. The per-terminal *Route through 9router* toggle picks gateway or own account when the
-  terminal opens.
+  terminal opens. A live checklist reads the key file on its own and marks what is missing, and
+  *Done* confirms the setup is saved and routing is live.
 - **Agent Voice plugin.** A new plugin in the catalogue (Preferences → Plugins), kept in
   [its own repository](https://github.com/Kc1t/alethe-agent-voice), makes each terminal speak with
   its own Fish Audio voice when an agent finishes a turn: the first sentence or two of its reply, or
