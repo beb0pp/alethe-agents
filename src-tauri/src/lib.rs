@@ -67,6 +67,7 @@ mod profiles;
 mod project_detector;
 mod projects;
 mod provider_common;
+mod protected_key;
 mod pty;
 mod release_install;
 mod remote;
@@ -638,6 +639,7 @@ pub fn run() {
             ai_memory::ai_memory_mcp_config_path,
             ai_memory::ai_memory_opencode_config_write,
             ai_memory::ai_memory_codex_config_write,
+            protected_key::read_protected_key,
             ai_memory::ai_memory_install,
             ai_memory::ai_memory_start,
             ai_memory::ai_memory_stop,

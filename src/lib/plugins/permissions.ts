@@ -49,6 +49,8 @@ const FORBIDDEN_COMMANDS = new Set([
   'write_text_file',
   'delete_filesystem_entry',
   'mcp_reveal_env',
+  // Decrypts the user's DPAPI key files.
+  'read_protected_key',
   'remote_control_open_pairing',
 ])
 

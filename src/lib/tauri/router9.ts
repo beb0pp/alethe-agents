@@ -40,3 +40,8 @@ export async function router9Start(port?: number, source?: Router9Source): Promi
 export async function router9Stop(): Promise<void> {
   await invoke('router9_stop')
 }
+
+/** Decrypts a DPAPI key file written by `ConvertFrom-SecureString`. Windows only. */
+export async function readProtectedKey(path: string): Promise<string> {
+  return invoke<string>('read_protected_key', { path })
+}
