@@ -1,0 +1,57 @@
+name: Build Windows installer
+
+# Unsigned NSIS installer for testing a branch, uploaded as a workflow artifact (no public release).
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feat/**', 'fix/**']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # rust-cache can restore sherpa-onnx-prebuilt/ without the static libraries inside it
+      - name: Download sherpa-onnx libraries again
+        working-directory: src-tauri
+        shell: bash
+        run: rm -rf target/sherpa-onnx-prebuilt && cargo clean -p sherpa-onnx-sys
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Rust tests for the remote 9router key
+        working-directory: src-tauri
+        run: cargo test --lib router9_remote
+
+      # Updater artifacts need the release signing key, which only the release workflow holds.
+      - name: Build NSIS installer
+        shell: bash
+        run: npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: alethe-windows-nsis
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 7
+          if-no-files-found: error
