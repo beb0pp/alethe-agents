@@ -13,7 +13,7 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 ### Added
 
 - **Terminal chat history.** Each agent tab remembers the chats it held before the current one.
-  Session history lists this terminal's current chat first, then its earlier ones, each tagged, and
+  Recent chats lists this terminal's current chat first, then its earlier ones, each tagged, and
   shows the full date and time on hover.
 
 - **Reorder top bar tabs.** Drag a tab in the top bar to a new place, like browser tabs: the
