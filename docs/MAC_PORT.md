@@ -42,6 +42,8 @@ Mac synced through: `v1.7.0` (`80e44a3`)
 - `pending` · `ui` · feat: reorder top bar tabs by drag, keyboard and context menu
   - Files: `src/lib/workspaceTabOrder.ts`, `src/components/TitleBar/useTabReorder.ts`, `src/components/TitleBar/index.tsx`, `src/stores/projectsStore.ts`, `src/stores/projectsStore.workspaceSlices.ts`
   - Behavior: new store action `moveWorkspaceTab(tabId, toIndex)`, clamped so pinned tabs stay before unpinned ones. Dragging a tab past a neighbour's centre slides that neighbour aside; dropping settles the tab into its slot (instant under reduced motion). Ctrl+Shift+Left/Right and context menu items Move left / Move right move the focused tab one slot. Reopening a tab already in `workspace.tabs` now keeps its index instead of moving it to the end. No change to the persisted shape.
+- `pending` · `ui` · fix(terminal): open the link actions menu for OSC 8 hyperlinks
+  - Files: `src/components/XTermView/useXtermSession.ts`
 
 - `pending` · `contract` · feat(terminal): preserve pane scroll and make Claude Code fullscreen rendering optional
   - Commit: Merge pull request #322 from MarkHiarley/fix/terminal-scroll-ownership

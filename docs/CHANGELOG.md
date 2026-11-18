@@ -618,6 +618,9 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 - **A tab no longer loses its chat when another tab holds the same one.** Opening a chat from
   another tab with `/resume` left both tabs on it; on the next start one of them opened an empty chat.
   That tab now reopens the chat it had before.
+- **Clickable agent links.** Links that agents print as terminal hyperlinks (OSC 8, shown with a
+  dashed underline, as Claude Code now does) open the link actions menu again; clicking them used
+  to do nothing.
 - ai-memory installs accept Unix archives with a root directory entry, find manually installed
   binaries outside the app PATH, and avoid duplicating Claude Code capture hooks already configured.
 - **Light terminal contrast.** Light themes, including plugin themes, enforce a WCAG-AA contrast
